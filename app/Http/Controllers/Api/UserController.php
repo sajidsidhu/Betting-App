@@ -2,13 +2,17 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use App\Http\Requests\UserUpdateRequest;
+use Throwable;
 use Illuminate\Http\JsonResponse;
+use App\Traits\HandlesFileUploads;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use App\Http\Requests\UserUpdateRequest;
 
 class UserController extends Controller
 {
+    use HandlesFileUploads;
     // ... existing code ...
 
     public function update(UserUpdateRequest $request): JsonResponse
@@ -19,50 +23,38 @@ class UserController extends Controller
 
             // Handle profile picture if uploaded
             if ($request->hasFile('profile_picture')) {
-                // Delete old profile picture if exists
-                if ($user->profile_picture && Storage::disk('public')->exists($user->profile_picture)) {
-                    Storage::disk('public')->delete($user->profile_picture);
-                }
-
-                // Store new profile picture
-                $validated['profile_picture'] = $request->file('profile_picture')
-                    ->store('profile_pics', 'public');
+                $validated['profile_picture'] = $this->uploadFile(
+                    $request->file('profile_picture'),
+                    'profile_pictures',
+                    $user->profile_picture
+                );
             }
 
-            // Update user fields if present
-            if (isset($validated['name'])) {
-                $user->name = $validated['name'];
-            }
-            if (isset($validated['email'])) {
-                $user->email = $validated['email'];
-            }
-            if (isset($validated['phone_number'])) {
-                $user->phone = $validated['phone_number'];
-            }
-            if (isset($validated['profile_picture'])) {
-                $user->profile_picture = $validated['profile_picture'];
+            if (isset($validated['password'])) {
+                $validated['password'] = bcrypt($validated['password']);
             }
 
-            $user->save();
+            $user->update($validated);
 
-            // Prepare response
-            $response = [
-                'name' => $user->name,
-                'email' => $user->email,
-                'phone_number' => $user->phone,
-                'profile_picture_url' => null
-            ];
-
-            // Add profile picture URL if exists
-            if ($user->profile_picture && Storage::disk('public')->exists($user->profile_picture)) {
-                $response['profile_picture_url'] = Storage::url($user->profile_picture);
-            }
-
-            return response()->json($response);
-        } catch (\Throwable $th) {
-            \Log::error($th); // Log the error for debuggin
-            return response()->json($th);
+            return response()->json($user->only([
+                'first_name',
+                'last_name',
+                'phone',
+                'email',
+                'profile_picture'
+            ]));
+        } catch (Throwable $th) {
+            return response()->json([
+                'message' => 'An error occurred while updating your profile.',
+                'error' => config('app.debug') ? $th->getMessage() : null
+            ], 422);
         }
-        
+    }
+
+    
+    public function user(): JsonResponse
+    {
+        $user = Auth::user();
+        return response()->json($user->only(['id', 'first_name', 'last_name', 'email', 'phone', 'profile_picture']));
     }
 }

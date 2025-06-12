@@ -17,38 +17,23 @@ class UserUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['nullable', 'string', 'max:255'],
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['nullable', 'string', 'max:255'],
             'email' => [
                 'nullable',
                 'email',
                 'max:255',
                 Rule::unique('users')->ignore($this->user()->id)
             ],
-            'phone_number' => [
+            'phone' => [
                 'nullable',
                 'string',
                 Rule::unique('users', 'phone')->ignore($this->user()->id)
             ],
             'profile_picture' => ['nullable', 'image', 'mimes:jpeg,png,jpg'],
+            'password' => 'nullable|string|min:8|confirmed|regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/',
+            'password_confirmation' => 'required_with:password|string|min:8|same:password',
         ];
     }
 
-    protected function passedValidation(): void
-    {
-        if (
-            !$this->exists('name') &&
-            !$this->exists('email') &&
-            !$this->exists('phone_number') &&
-            !$this->hasFile('profile_picture')
-        ) {
-            throw new HttpResponseException(
-                response()->json([
-                    'message' => 'At least one of name, email, phone_number, or profile_picture must be provided.',
-                    'errors' => [
-                        'request' => ['No fields provided for update.']
-                    ]
-                ], 422)
-            );
-        }
-    }
 }

@@ -22,9 +22,16 @@ class AuthController extends Controller
         $token = $user->createToken('auth-token')->plainTextToken;
 
         return response()->json([
-            'user' => $user,
+            'user' => $user->only([
+            'id',
+            'first_name',
+            'last_name',
+            'phone',
+            'email',
+            'profile_picture'
+        ]),
             'token' => $token
-        ], 201);
+        ]);
     }
 
     public function login(LoginRequest $request): JsonResponse
@@ -44,24 +51,6 @@ class AuthController extends Controller
         return response()->json([
             'user' => $user,
             'token' => $token
-        ]);
-    }
-
-    public function user(): JsonResponse
-    {
-        $user = Auth::user();
-
-        $profilePictureUrl = null;
-    
-        if ($user->profile_picture && Storage::disk('public')->exists($user->profile_picture)) {
-            $profilePictureUrl = Storage::url($user->profile_picture);
-        }
-    
-        return response()->json([
-            'name' => $user->name,
-            'email' => $user->email,
-            'phone_number' => $user->phone_number,
-            'profile_picture_url' => $profilePictureUrl,
         ]);
     }
 
