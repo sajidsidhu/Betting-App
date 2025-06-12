@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class AuthController extends Controller
 {
@@ -48,7 +49,20 @@ class AuthController extends Controller
 
     public function user(): JsonResponse
     {
-        return response()->json(Auth::user());
+        $user = Auth::user();
+
+        $profilePictureUrl = null;
+    
+        if ($user->profile_picture && Storage::disk('public')->exists($user->profile_picture)) {
+            $profilePictureUrl = Storage::url($user->profile_picture);
+        }
+    
+        return response()->json([
+            'name' => $user->name,
+            'email' => $user->email,
+            'phone_number' => $user->phone_number,
+            'profile_picture_url' => $profilePictureUrl,
+        ]);
     }
 
     public function logout(): JsonResponse
