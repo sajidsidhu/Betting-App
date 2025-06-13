@@ -37,6 +37,7 @@ class UserController extends Controller
             $user->update($validated);
 
             return response()->json($user->only([
+                'id',
                 'first_name',
                 'last_name',
                 'phone',
