@@ -2,10 +2,11 @@
 
 namespace App\Services\ChatGPT;
 
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use RuntimeException;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 
 class ChatGPTService
 {
@@ -70,7 +71,7 @@ EOT;
                 'Authorization' => 'Bearer ' . $this->apiKey,
                 'Content-Type' => 'application/json',
             ])->post($this->visionEndpoint, [
-                'model' => 'gpt-4-vision-preview',
+                'model' => 'gpt-4.1-mini',
                 'messages' => [
                     [
                         'role' => 'system',
@@ -115,12 +116,12 @@ EOT;
                 ]);
                 return $this->createErrorResponse('Failed to parse ticket data');
             }
-
-            if (!$this->validateTicketData($data)) {
+            $errors = $this->validateTicketData($data);
+            if ($errors) {
                 Log::error('Invalid ticket data structure', ['data' => $data]);
-                return $this->createErrorResponse('Invalid ticket data structure');
+                return $this->createErrorResponse('Invalid ticket data structure', $errors);
             }
-            
+
             Log::info('Ticket data processed successfully', ['data' => $data]);
             return $data;
 
@@ -133,13 +134,14 @@ EOT;
         }
     }
 
-    private function createErrorResponse(string $message): array
+    private function createErrorResponse(string $message, $errors = []): array
     {
         return [
             'is_readable' => false,
             'error_message' => $message,
-            'source_language' => null,
+            'errors' => $errors,
             'summary' => [
+                'language' => 'unknown',
                 'total_odd' => 0,
                 'total_price' => 0,
                 'potential_win' => 0,
@@ -151,70 +153,35 @@ EOT;
         ];
     }
 
-    private function validateTicketData(array $data): bool
+    private function validateTicketData(array $data): bool|array
     {
-        if (!isset($data['is_readable']) || !is_bool($data['is_readable'])) {
-            return false;
+        $validator = Validator::make($data, [
+            'is_readable' => 'required|boolean',
+            'error_message' => 'nullable|string',
+            'source_language' => 'required|string',
+            'summary' => 'required|array',
+            'summary.ticket_date' => 'nullable|date',
+            'summary.bookmaker' => 'nullable|string',
+            'summary.total_odd' => 'nullable|numeric',
+            'summary.total_price' => 'nullable|numeric',
+            'summary.potential_win' => 'nullable|numeric',
+            'summary.status' => 'nullable|string',
+            'bets' => 'required|array',
+            'bets.*.game_datetime' => 'nullable|date',
+            'bets.*.team_1' => 'required|string',
+            'bets.*.team_2' => 'required|string',
+            'bets.*.bet_type' => 'required|string',
+            'bets.*.odds' => 'required|numeric',
+            'bets.*.prediction' => 'required|string',
+            'bets.*.game_type' => 'required|string',
+            'bets.*.raw_text' => 'required|string',
+            'bets.*.status' => 'nullable|string'
+        ]);
+
+        if ($validator->fails()) {
+            return $validator->errors()->toArray();
         }
 
-        if ($data['is_readable'] === false) {
-            return isset($data['error_message']) && is_string($data['error_message']);
-        }
-
-        if (!isset($data['summary']) || !is_array($data['summary'])) {
-            return false;
-        }
-
-        $requiredSummaryFields = [
-            'total_odd' => 'numeric',
-            'total_price' => 'numeric',
-            'potential_win' => 'numeric',
-            'ticket_date' => 'string',
-            'status' => 'string',
-        ];
-
-        foreach ($requiredSummaryFields as $field => $type) {
-            if (!isset($data['summary'][$field])) {
-                return false;
-            }
-            if ($type === 'numeric' && !is_numeric($data['summary'][$field])) {
-                return false;
-            }
-            if ($type === 'string' && !is_string($data['summary'][$field])) {
-                return false;
-            }
-        }
-
-        if (!isset($data['bets']) || !is_array($data['bets']) || empty($data['bets'])) {
-            return false;
-        }
-
-        foreach ($data['bets'] as $bet) {
-            $requiredBetFields = [
-                'game_datetime' => 'string',
-                'team_1' => 'string',
-                'team_2' => 'string',
-                'bet_type' => 'string',
-                'odds' => 'numeric',
-                'prediction' => 'string',
-                'game_type' => 'string',
-                'raw_text' => 'string',
-                'status' => 'string',
-            ];
-
-            foreach ($requiredBetFields as $field => $type) {
-                if (!isset($bet[$field])) {
-                    return false;
-                }
-                if ($type === 'numeric' && !is_numeric($bet[$field])) {
-                    return false;
-                }
-                if ($type === 'string' && !is_string($bet[$field])) {
-                    return false;
-                }
-            }
-        }
-
-        return true;
+        return false; // No validation errors
     }
 }

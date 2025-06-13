@@ -13,6 +13,12 @@ class Bet extends Model
     protected $fillable = [
         'ticket_id',
         'date_time',
+        'team_1',
+        'team_2',
+        'bet_type',
+        'odds',
+        'prediction',
+        'game_type',
         'raw_text',
         'parsed_data',
         'status',
@@ -21,6 +27,7 @@ class Bet extends Model
 
     protected $casts = [
         'date_time' => 'datetime',
+        'odds' => 'decimal:2',
         'parsed_data' => 'array',
         'verified_at' => 'datetime'
     ];
