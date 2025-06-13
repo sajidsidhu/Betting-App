@@ -21,6 +21,7 @@ Required format:
     "error_message": null or error description if not readable,
     "source_language": "detected language code",
     "summary": {
+        "language": "detected language code",
         "total_odd": numeric value,
         "total_price": numeric value,
         "potential_win": numeric value,
@@ -119,7 +120,8 @@ EOT;
                 Log::error('Invalid ticket data structure', ['data' => $data]);
                 return $this->createErrorResponse('Invalid ticket data structure');
             }
-
+            
+            Log::info('Ticket data processed successfully', ['data' => $data]);
             return $data;
 
         } catch (\Throwable $e) {
