@@ -19,6 +19,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/', [TicketController::class, 'index']);
         Route::get('/history', [TicketController::class, 'history']);
         Route::get('/favorites', [TicketController::class, 'favorites']);
+        Route::post('/clear-history', [TicketController::class, 'clearHistory']);
+        Route::get('/deleted', [TicketController::class, 'deleted']);
+        Route::post('/{id}/restore', [TicketController::class, 'restore']);
         Route::get('/{ticket}', [TicketController::class, 'show']);
         Route::post('/{ticket}/favorite', [TicketController::class, 'toggleFavorite']);
         Route::get('/{ticket}/delete', [TicketController::class, 'delete']);

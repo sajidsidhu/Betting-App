@@ -111,6 +111,102 @@ class TicketController extends Controller
         ]);
     }
 
+    /**
+     * Clear user's ticket history (soft delete)
+     */
+    public function clearHistory(): JsonResponse
+    {
+        try {
+            DB::beginTransaction();
+
+            // Get all non-pending tickets for the user
+            $tickets = Ticket::where('user_id', Auth::id())
+                ->whereNotIn('status', ['pending'])
+                ->get();
+
+            foreach ($tickets as $ticket) {
+                // Soft delete bets first
+                $ticket->bets()->delete();
+                // Soft delete the ticket
+                $ticket->delete();
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'History cleared successfully',
+                'count' => $tickets->count()
+            ]);
+
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            report($th);
+
+            return response()->json([
+                'message' => 'Failed to clear history',
+                'error' => config('app.debug') ? $th->getMessage() : null
+            ], 500);
+        }
+    }
+
+    /**
+     * Restore a soft-deleted ticket and its bets
+     */
+    public function restore(int $ticketId): JsonResponse
+    {
+        try {
+            $ticket = Ticket::onlyTrashed()
+                ->where('id', $ticketId)
+                ->where('user_id', Auth::id())
+                ->firstOrFail();
+
+            DB::beginTransaction();
+
+            // Restore the bets first
+            $ticket->bets()->restore();
+            // Restore the ticket
+            $ticket->restore();
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Ticket restored successfully',
+                'ticket' => new TicketResource($ticket->load('bets'))
+            ]);
+
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            
+            if ($th instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
+                return response()->json([
+                    'message' => 'Ticket not found'
+                ], 404);
+            }
+
+            report($th);
+            return response()->json([
+                'message' => 'Failed to restore ticket',
+                'error' => config('app.debug') ? $th->getMessage() : null
+            ], 500);
+        }
+    }
+
+    /**
+     * Get list of deleted tickets that can be restored
+     */
+    public function deleted(): AnonymousResourceCollection
+    {
+        $tickets = Ticket::onlyTrashed()
+            ->where('user_id', Auth::id())
+            ->with(['bets' => function ($query) {
+                $query->withTrashed();
+            }])
+            ->orderBy('deleted_at', 'desc')
+            ->paginate(10);
+
+        return TicketResource::collection($tickets);
+    }
+
     public function delete(Ticket $ticket): JsonResponse
     {
         try {
