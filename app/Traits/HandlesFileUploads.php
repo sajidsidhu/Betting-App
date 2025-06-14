@@ -34,7 +34,7 @@ trait HandlesFileUploads
     static function getFileUrl(?string $path): ?string
     {
         if ($path && Storage::disk('public')->exists($path)) {
-            return Storage::url($path);
+            return config('app.url') . Storage::url($path);
         }
         return null;
     }

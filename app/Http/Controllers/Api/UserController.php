@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use App\Http\Resources\UserResource;
 use App\Http\Requests\UserUpdateRequest;
 use App\Http\Requests\DeleteAccountRequest;
 use App\Http\Controllers\Api\TicketController;
@@ -43,14 +44,7 @@ class UserController extends Controller
 
             $user->update($validated);
 
-            return response()->json($user->only([
-                'id',
-                'first_name',
-                'last_name',
-                'phone',
-                'email',
-                'profile_picture'
-            ]));
+            return response()->json(new UserResource($user));
         } catch (Throwable $th) {
             return response()->json([
                 'message' => 'An error occurred while updating your profile.',
@@ -111,6 +105,6 @@ class UserController extends Controller
     public function user(): JsonResponse
     {
         $user = Auth::user();
-        return response()->json($user->only(['id', 'first_name', 'last_name', 'email', 'phone', 'profile_picture', 'plan_id', 'subscribed_at', 'subscription_expires_at']));
+        return response()->json(new UserResource($user));
     }
 }
