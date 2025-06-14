@@ -15,6 +15,7 @@ use App\Http\Resources\TicketResource;
 use App\Http\Requests\TicketStoreRequest;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Storage;
 
 class TicketController extends Controller
 {
@@ -108,5 +109,44 @@ class TicketController extends Controller
             'message' => $ticket->is_favorite ? 'Marked as favorite' : 'Removed from favorites',
             'is_favorite' => $ticket->is_favorite
         ]);
+    }
+
+    public function delete(Ticket $ticket): JsonResponse
+    {
+        try {
+            // Authorize the deletion
+            $this->authorize('delete', $ticket);
+
+            // Start database transaction
+            DB::beginTransaction();
+
+            // Delete associated bets first
+            $ticket->bets()->delete();
+
+            // Delete the image file if it exists
+            if ($ticket->image_path) {
+                $this->deleteFile($ticket->image_path);
+            }
+
+            // Delete the ticket record
+            $ticket->delete();
+
+            // Commit the transaction
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Ticket and all associated data deleted successfully'
+            ]);
+
+        } catch (\Throwable $th) {
+            // Rollback in case of error
+            DB::rollBack();
+
+            report($th);
+            return response()->json([
+                'message' => 'Failed to delete ticket',
+                'error' => config('app.debug') ? $th->getMessage() : null
+            ], 500);
+        }
     }
 }
