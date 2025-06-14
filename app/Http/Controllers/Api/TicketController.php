@@ -84,6 +84,18 @@ class TicketController extends Controller
         return TicketResource::collection($tickets);
     }
 
+    public function favorites(): AnonymousResourceCollection
+    {
+        $tickets = Ticket::where('user_id', Auth::id())
+            ->where('is_favorite', true)
+            ->with('bets')
+            ->orderByRaw("CASE WHEN status = 'pending' THEN 0 ELSE 1 END")
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
+
+        return TicketResource::collection($tickets);
+    }
+
     public function toggleFavorite(Ticket $ticket): JsonResponse
     {
         $this->authorize('update', $ticket);

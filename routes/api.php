@@ -18,6 +18,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/', [TicketController::class, 'store']);
         Route::get('/', [TicketController::class, 'index']);
         Route::get('/history', [TicketController::class, 'history']);
+        Route::get('/favorites', [TicketController::class, 'favorites']);
         Route::get('/{ticket}', [TicketController::class, 'show']);
         Route::post('/{ticket}/favorite', [TicketController::class, 'toggleFavorite']);
     });
