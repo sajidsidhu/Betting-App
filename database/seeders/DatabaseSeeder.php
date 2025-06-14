@@ -38,6 +38,7 @@ class DatabaseSeeder extends Seeder
         // Run the ticket seeder
         $this->call([
             TicketSeeder::class,
+            PlanSeeder::class,
         ]);
     }
 }

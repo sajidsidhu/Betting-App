@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\TicketController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\SubscriptionController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/register', [AuthController::class, 'register']);
@@ -16,6 +17,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/delete', [UserController::class, 'deleteAccount']);
         Route::post('/', [UserController::class, 'update']);
     });
+
+    // Subscription routes
+    Route::prefix('subscription')->group(function() {
+        Route::get('/plans', [SubscriptionController::class, 'index']);
+        Route::post('/subscribe', [SubscriptionController::class, 'subscribe']);
+    });
+
     // Ticket routes
     Route::prefix('ticket')->group(function(){
         Route::post('/', [TicketController::class, 'store']);
