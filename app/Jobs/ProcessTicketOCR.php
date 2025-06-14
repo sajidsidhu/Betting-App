@@ -26,9 +26,6 @@ class ProcessTicketOCR implements ShouldQueue
             // Extract text from image using ChatGPT Vision API
             $ocrResult = $chatGPTService->extractTextFromImage($this->ticket->image_path);
 
-            // Validate OCR result structure
-            // $this->validateOCRResult($ocrResult);
-
             // Update ticket with extracted data
             $this->updateTicket($ocrResult);
 
@@ -36,12 +33,6 @@ class ProcessTicketOCR implements ShouldQueue
             if ($ocrResult['is_readable']) {
                 $this->createBets($ocrResult['bets']);
             }
-
-            Log::info('Ticket processed successfully', [
-                'ticket_id' => $this->ticket->id,
-                'is_readable' => $ocrResult['is_readable'],
-                'status' => $ocrResult['summary']['status'] ?? 'pending'
-            ]);
 
         } catch (\Throwable $e) {
             Log::error('Failed to process ticket OCR', [
