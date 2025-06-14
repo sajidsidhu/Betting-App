@@ -5,16 +5,18 @@ namespace App\Http\Controllers\Api;
 use App\Models\Plan;
 use App\Models\SubscriptionLog;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\PlanResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
 class SubscriptionController extends Controller
 {
+
     public function index(): JsonResponse
     {
         $plans = Plan::where('status', true)->get();
-        return response()->json(['plans' => $plans]);
+        return response()->json(PlanResource::collection($plans));
     }
 
     public function subscribe(Request $request): JsonResponse
@@ -64,7 +66,6 @@ class SubscriptionController extends Controller
                     'expires_at' => $user->subscription_expires_at
                 ]
             ]);
-
         } catch (\Exception $e) {
             // Log the error
             if (isset($log)) {

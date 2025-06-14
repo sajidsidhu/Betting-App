@@ -111,20 +111,6 @@ class UserController extends Controller
     public function user(): JsonResponse
     {
         $user = Auth::user();
-        $subscription = null;
-
-        if ($user->plan) {
-            $subscription = [
-                'plan_title' => $user->plan->title,
-                'subscribed_at' => $user->subscribed_at?->format('Y-m-d'),
-                'expires_at' => $user->subscription_expires_at?->format('Y-m-d'),
-                'is_active' => $user->hasActiveSubscription()
-            ];
-        }
-
-        return response()->json([
-            'user' => $user->only(['id', 'first_name', 'last_name', 'email', 'phone', 'profile_picture']),
-            'subscription' => $subscription
-        ]);
+        return response()->json($user->only(['id', 'first_name', 'last_name', 'email', 'phone', 'profile_picture', 'plan_id', 'subscribed_at', 'subscription_expires_at']));
     }
 }

@@ -19,8 +19,8 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Subscription routes
-    Route::prefix('subscription')->group(function() {
-        Route::get('/plans', [SubscriptionController::class, 'index']);
+    Route::prefix('plan')->group(function() {
+        Route::get('/', [SubscriptionController::class, 'index']);
         Route::post('/subscribe', [SubscriptionController::class, 'subscribe']);
     });
 
