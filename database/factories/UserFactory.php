@@ -24,10 +24,13 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake()->name(),
+            'first_name' => fake()->firstName(),
+            'last_name' => fake()->lastName(),
+            'phone' => fake()->phoneNumber(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
+            'profile_picture' => null,
             'remember_token' => Str::random(10),
         ];
     }
@@ -39,6 +42,42 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
+        ]);
+    }
+
+    /**
+     * Create a demo user with predefined data.
+     */
+    public function demo(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'first_name' => 'Demo',
+            'last_name' => 'User',
+            'email' => 'demo@example.com',
+            'phone' => '+41 79 123 45 67', // Swiss phone number format
+            'email_verified_at' => now(),
+            'password' => Hash::make('demo123!'),
+        ]);
+    }
+
+    /**
+     * Create a user with a profile picture.
+     */
+    public function withProfilePicture(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'profile_picture' => 'avatars/default.jpg',
+        ]);
+    }
+
+    /**
+     * Create a Swiss user with local formatting.
+     */
+    public function swiss(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'phone' => '+41 ' . fake()->numberBetween(70, 79) . ' ' . 
+                      fake()->numerify('### ## ##'), // Swiss mobile format
         ]);
     }
 }
