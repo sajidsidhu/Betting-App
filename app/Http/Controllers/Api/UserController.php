@@ -3,18 +3,25 @@
 namespace App\Http\Controllers\Api;
 
 use Throwable;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use App\Traits\HandlesFileUploads;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Requests\UserUpdateRequest;
+use App\Http\Requests\DeleteAccountRequest;
+use App\Http\Controllers\Api\TicketController;
+use App\Models\Ticket;
 
 class UserController extends Controller
 {
     use HandlesFileUploads;
-    // ... existing code ...
 
+    /**
+     * Update the authenticated user's profile
+     */
     public function update(UserUpdateRequest $request): JsonResponse
     {
         try {
@@ -52,7 +59,55 @@ class UserController extends Controller
         }
     }
 
-    
+    /**
+     * Delete user account and all associated data
+     */
+    public function deleteAccount(DeleteAccountRequest $request): JsonResponse
+    {
+        try {
+            /** @var User $user */
+            $user = Auth::user();
+
+            // Start transaction
+            DB::beginTransaction();
+
+            // 1. Delete all tickets and their associated data
+            $ticket_controller = new TicketController();
+            $tickets = Ticket::where('user_id', $user->id)->get();
+            foreach ($tickets as $ticket) {
+                $ticket_controller->delete($ticket);
+            }
+
+            $this->deleteFile($user->profile_picture);
+
+            // 3. Revoke all tokens (logout from all devices)
+            $user->tokens()->delete();
+
+            // 4. Delete all user sessions
+            DB::table('sessions')
+                ->where('user_id', $user->id)
+                ->delete();
+
+            // 5. Delete the user
+            $user->delete();
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Account and all associated data deleted successfully'
+            ]);
+
+        } catch (Throwable $th) {
+            DB::rollBack();
+            report($th);
+
+            return response()->json([
+                'message' => 'Failed to delete account',
+                'error' => config('app.debug') ? $th->getMessage() : null
+            ], 500);
+        }
+    }
+
     public function user(): JsonResponse
     {
         $user = Auth::user();

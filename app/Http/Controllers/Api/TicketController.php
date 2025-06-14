@@ -9,13 +9,14 @@ use Illuminate\Http\JsonResponse;
 use App\Traits\HandlesFileUploads;
 use Illuminate\Support\Facades\DB;
 use App\Http\Resources\BetResource;
+use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Resources\TicketResource;
+use Illuminate\Support\Facades\Storage;
 use App\Http\Requests\TicketStoreRequest;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Illuminate\Support\Facades\Storage;
 
 class TicketController extends Controller
 {
@@ -233,15 +234,11 @@ class TicketController extends Controller
             DB::beginTransaction();
 
             // Delete associated bets first
-            $ticket->bets()->delete();
-
-            // Delete the image file if it exists
-            if ($ticket->image_path) {
-                $this->deleteFile($ticket->image_path);
-            }
-
+            $ticket->bets()->forceDelete();
+            // Delete the ticket image file            
+            $this->deleteFile($ticket->image_path);
             // Delete the ticket record
-            $ticket->delete();
+            $ticket->forceDelete();
 
             // Commit the transaction
             DB::commit();
@@ -251,6 +248,7 @@ class TicketController extends Controller
             ]);
 
         } catch (\Throwable $th) {
+
             // Rollback in case of error
             DB::rollBack();
 

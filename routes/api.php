@@ -9,10 +9,13 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/user', [UserController::class, 'user']);
-    Route::post('/user', [UserController::class, 'update']);
     
+    Route::prefix('user')->group(function(){
+        Route::post('/logout', [AuthController::class, 'logout']);
+        Route::get('/', [UserController::class, 'user']);
+        Route::post('/delete', [UserController::class, 'deleteAccount']);
+        Route::post('/', [UserController::class, 'update']);
+    });
     // Ticket routes
     Route::prefix('ticket')->group(function(){
         Route::post('/', [TicketController::class, 'store']);

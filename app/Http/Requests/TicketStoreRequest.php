@@ -11,7 +11,7 @@ class TicketStoreRequest extends FormRequest
     {
         if ($this->ticket_id) {
             $ticket = Ticket::find($this->ticket_id);
-            return $ticket && $ticket->user_id === auth()->id();
+            return !$ticket ? true  : ($ticket && $ticket->user_id === auth()->id());
         }
         return true;
     }
