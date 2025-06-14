@@ -2,17 +2,23 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use App\Http\Requests\TicketStoreRequest;
-use App\Jobs\ProcessTicketOCR;
+use App\Models\User;
 use App\Models\Ticket;
-use App\Traits\HandlesFileUploads;
+use App\Jobs\ProcessTicketOCR;
 use Illuminate\Http\JsonResponse;
+use App\Traits\HandlesFileUploads;
+use Illuminate\Support\Facades\DB;
+use App\Http\Resources\BetResource;
+use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Resources\TicketResource;
+use App\Http\Requests\TicketStoreRequest;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class TicketController extends Controller
 {
-    use HandlesFileUploads;
+    use HandlesFileUploads, AuthorizesRequests;
 
     public function store(TicketStoreRequest $request): JsonResponse
     {
@@ -35,7 +41,6 @@ class TicketController extends Controller
                 'message' => 'Ticket uploaded successfully and is being processed',
                 'ticket_id' => $ticket->id
             ]);
-
         } catch (\Throwable $th) {
             report($th);
             return response()->json([
@@ -45,13 +50,15 @@ class TicketController extends Controller
         }
     }
 
-    public function index(): JsonResponse
+    public function index(): AnonymousResourceCollection
     {
-        $tickets = Auth::user()->tickets()
-            ->latest()
+        $tickets = Ticket::where('user_id', Auth::id())
+            ->select('tickets.*')
+            ->orderByRaw("CASE WHEN status = 'pending' THEN 0 ELSE 1 END")
+            ->orderBy('created_at', 'desc')
             ->paginate(10);
 
-        return response()->json($tickets);
+        return TicketResource::collection($tickets);
     }
 
     public function show(Ticket $ticket): JsonResponse
@@ -59,22 +66,22 @@ class TicketController extends Controller
         $this->authorize('view', $ticket);
 
         $ticket->load('bets');
-        
+
         return response()->json([
-            'ticket' => $ticket,
-            'image_url' => $this->getFileUrl($ticket->image_path)
+            'ticket' => new TicketResource($ticket),
+            'bets' => BetResource::collection($ticket->bets),
+            'image_url' => $this::getFileUrl($ticket->image_path)
         ]);
     }
 
-    public function history(): JsonResponse
+    public function  history(): AnonymousResourceCollection
     {
-        $tickets = Auth::user()->tickets()
-            ->whereNotIn('status', ['pending'])
-            ->with('bets')
-            ->latest()
+        $tickets = Ticket::where('user_id', Auth::id())
+            ->whereIn('status', ['lost', 'all_won'])
+            ->orderBy('created_at', 'desc')
             ->paginate(10);
 
-        return response()->json($tickets);
+        return TicketResource::collection($tickets);
     }
 
     public function toggleFavorite(Ticket $ticket): JsonResponse

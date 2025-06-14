@@ -20,7 +20,12 @@ class Ticket extends Model
         'total_price',
         'potential_win',
         'status',
-        'is_favorite'
+        'is_favorite',
+        'bookmaker',
+        'ticket_date',
+        'error_message',
+        'is_readable',
+        'errors'
     ];
 
     protected $casts = [
@@ -28,7 +33,8 @@ class Ticket extends Model
         'total_odd' => 'decimal:2',
         'total_price' => 'decimal:2',
         'potential_win' => 'decimal:2',
-        'is_favorite' => 'boolean'
+        'is_favorite' => 'boolean',
+        'is_readable' => 'boolean',
     ];
 
     public function user(): BelongsTo

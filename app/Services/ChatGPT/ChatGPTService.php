@@ -103,7 +103,7 @@ EOT;
                     'status' => $response->status(),
                     'body' => $response->body()
                 ]);
-                return $this->createErrorResponse('Failed to process image with ChatGPT API');
+                return $this->createErrorResponse('Failed to process ticket');
             }
 
             $content = $response->json('choices.0.message.content');
@@ -119,10 +119,9 @@ EOT;
             $errors = $this->validateTicketData($data);
             if ($errors) {
                 Log::error('Invalid ticket data structure', ['data' => $data]);
-                return $this->createErrorResponse('Invalid ticket data structure', $errors);
+                return $this->createErrorResponse('Invalid ticket data', $errors);
             }
 
-            Log::info('Ticket data processed successfully', ['data' => $data]);
             return $data;
 
         } catch (\Throwable $e) {
@@ -130,7 +129,7 @@ EOT;
                 'error' => $e->getMessage(),
                 'stack_trace' => $e->getTraceAsString()
             ]);
-            return $this->createErrorResponse('Failed to process ticket: ' . $e->getMessage());
+            return $this->createErrorResponse('Failed to process ticket');
         }
     }
 

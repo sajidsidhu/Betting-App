@@ -31,7 +31,7 @@ trait HandlesFileUploads
         return false;
     }
 
-    protected function getFileUrl(?string $path): ?string
+    static function getFileUrl(?string $path): ?string
     {
         if ($path && Storage::disk('public')->exists($path)) {
             return Storage::url($path);
