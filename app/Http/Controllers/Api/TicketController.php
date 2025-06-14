@@ -24,6 +24,14 @@ class TicketController extends Controller
     public function store(TicketStoreRequest $request): JsonResponse
     {
         try {
+            // If ticket_id is provided, handle as re-upload
+            if ($request->has('ticket_id')) {
+                $existingTicket = Ticket::find($request->ticket_id);
+                
+                // Delete existing ticket (this will handle bets and image deletion)
+                $this->delete($existingTicket);
+            }
+
             // Upload and store the ticket image
             $imagePath = $this->uploadFile(
                 $request->file('ticket_image'),
@@ -32,20 +40,28 @@ class TicketController extends Controller
 
             // Create the ticket record
             $ticket = Auth::user()->tickets()->create([
-                'image_path' => $imagePath
+                'image_path' => $imagePath,
+                'status' => 'pending',
+                'is_favorite' => $request->has('ticket_id') ? $existingTicket->is_favorite : false
             ]);
 
             // Dispatch job to process the ticket
             ProcessTicketOCR::dispatch($ticket);
 
+            $message = $request->has('ticket_id') ? 
+                'Ticket re-uploaded successfully and is being processed' :
+                'Ticket uploaded successfully and is being processed';
+
             return response()->json([
-                'message' => 'Ticket uploaded successfully and is being processed',
+                'message' => $message,
                 'ticket_id' => $ticket->id
             ]);
+
         } catch (\Throwable $th) {
             report($th);
+            
             return response()->json([
-                'message' => 'Failed to upload ticket',
+                'message' => 'Failed to process ticket',
                 'error' => config('app.debug') ? $th->getMessage() : null
             ], 500);
         }

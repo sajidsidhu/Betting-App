@@ -2,18 +2,28 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Ticket;
 use Illuminate\Foundation\Http\FormRequest;
 
 class TicketStoreRequest extends FormRequest
 {
     public function authorize(): bool
     {
+        if ($this->ticket_id) {
+            $ticket = Ticket::find($this->ticket_id);
+            return $ticket && $ticket->user_id === auth()->id();
+        }
         return true;
     }
 
     public function rules(): array
     {
         return [
+            'ticket_id' => [
+                'sometimes',  // Makes the field optional
+                'integer',
+                'exists:tickets,id,user_id,' . auth()->id(), // Ensures ticket belongs to user
+            ],
             'ticket_image' => [
                 'required',
                 'image',
@@ -30,6 +40,7 @@ class TicketStoreRequest extends FormRequest
             'ticket_image.image' => 'The file must be an image.',
             'ticket_image.mimes' => 'The image must be a JPEG or PNG file.',
             'ticket_image.max' => 'The image size must not exceed 5MB.',
+            'ticket_id.exists' => 'The specified ticket was not found or does not belong to you.',
         ];
     }
 }
